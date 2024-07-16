@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config({ path: './config.env' });
+
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -13,19 +16,14 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-  origin: 'http://localhost:5173', // Replace with your actual frontend URL
+  origin: process.env.FRONTEND_URL,
 }));
 
-const MONGO_URL = "mongodb+srv://tyagiparth65:vQS07JExtwPE1pNQ@cluster0.wbgnpgj.mongodb.net/?retryWrites=true";
+const MONGO_URL = process.env.MONGO_URL;
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(MONGO_URL, {
-      // Removing deprecated options useNewUrlParser and useUnifiedTopology
-      // New options are handled automatically by the latest MongoDB Node.js driver
-      // useNewUrlParser: true,
-      // useUnifiedTopology: true,
-    });
+    await mongoose.connect(MONGO_URL);
     console.log('Connected to MongoDB');
   } catch (error) {
     console.error('Error connecting to MongoDB', error);
@@ -43,11 +41,6 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
-// Routes
-
-
-
-// Models
 const QuizSchema = new mongoose.Schema({
   userId: String,
   answers: [String],
@@ -59,7 +52,6 @@ const QuizSchema = new mongoose.Schema({
 
 const Quiz = mongoose.model('Quiz', QuizSchema);
 
-// Routes
 app.post('/submitQuiz', async (req, res) => {
   const { userId, answers, correctAnswers, timeSpent, timePerQuestion } = req.body;
 
@@ -89,8 +81,6 @@ app.get('/getReports/:userId', async (req, res) => {
     res.status(500).send('Error fetching reports');
   }
 });
-
-
 
 app.post("/login", async (req, res) => {
     try {
@@ -133,19 +123,3 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
