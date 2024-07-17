@@ -4,7 +4,6 @@ dotenv.config({ path: './config.env' });
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -34,14 +33,14 @@ const connectDB = async () => {
 connectDB();
 
 const userSchema = new mongoose.Schema({
-    name: String,
-    email: String,
-    password: String,
+  name: String,
+  email: String,
+  password: String,
 });
 
 const User = mongoose.model('User', userSchema);
 
-const QuizSchema = new mongoose.Schema({
+const quizSchema = new mongoose.Schema({
   userId: String,
   answers: [String],
   correctAnswers: [String],
@@ -50,7 +49,7 @@ const QuizSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now }
 });
 
-const Quiz = mongoose.model('Quiz', QuizSchema);
+const Quiz = mongoose.model('Quiz', quizSchema);
 
 app.post('/submitQuiz', async (req, res) => {
   const { userId, answers, correctAnswers, timeSpent, timePerQuestion } = req.body;
@@ -67,6 +66,7 @@ app.post('/submitQuiz', async (req, res) => {
     await newQuiz.save();
     res.status(200).send('Quiz submitted successfully');
   } catch (error) {
+    console.error('Error submitting quiz:', error);
     res.status(500).send('Error submitting quiz');
   }
 });
@@ -78,45 +78,49 @@ app.get('/getReports/:userId', async (req, res) => {
     const reports = await Quiz.find({ userId });
     res.status(200).json(reports);
   } catch (error) {
+    console.error('Error fetching reports:', error);
     res.status(500).send('Error fetching reports');
   }
 });
 
 app.post("/login", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      const user = await User.findOne({ email });
-      if (user) {
-        if (password === user.password) {
-          res.send({ message: "Login Successful", user });
-        } else {
-          res.status(401).send({ message: "Password didn't match" });
-        }
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (user) {
+      if (password === user.password) {
+        res.send({ message: "Login Successful", user });
       } else {
-        res.status(404).send({ message: "User not registered" });
+        res.status(401).send({ message: "Password didn't match" });
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).send({ message: "Internal server error" });
+    } else {
+      res.status(404).send({ message: "User not registered" });
     }
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).send({ message: "Internal server error" });
+  }
 });
   
 app.post("/register", async (req, res) => {
-    try {
-      const { name, email, password } = req.body;
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        res.status(400).send({ message: "User already registered" });
-      } else {
-        const newUser = new User({ name, email, password });
-        await newUser.save();
-        res.status(201).send({ message: "Successfully Registered, Please login now." });
-      }
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).send({ message: "Internal server error" });
+  try {
+    const { name, email, password } = req.body;
+    // Check if user already exists by name or email
+    const existingUser = await User.findOne({ $or: [{ name }, { email }] });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already registered" });
     }
+    // Create new user
+    const newUser = new User({ name, email, password });
+    await newUser.save();
+    res.status(201).json({ message: "Successfully Registered, Please login now." });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
+
+
 
 const PORT = process.env.PORT || 5000;
 
